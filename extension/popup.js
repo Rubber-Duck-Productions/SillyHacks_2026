@@ -208,12 +208,21 @@ async function talkToGemini(prompt) {
   return getGeminiResponse(prompt);
 }
 
+function getSpeechRecognitionCtor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('send-btn');
+  const speakBtn = document.getElementById('speak-btn');
   const promptEl = document.getElementById('prompt');
   const chatWindow = document.getElementById('chat-window');
   const statusLine = document.getElementById('status-line');
+
+  const RecognitionCtor = getSpeechRecognitionCtor();
+  let recognition = null;
+  let voiceFinalText = '';
+  let listening = false;
 
   checkElevenLabsConnection()
     .then((result) => {
@@ -225,6 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+  if (!RecognitionCtor && speakBtn) {
+    speakBtn.disabled = true;
+    speakBtn.title = 'Speech recognition not available in this browser';
+  }
+
   function appendMessage(text, cssClass) {
     const message = document.createElement('div');
     message.className = `message ${cssClass}`; // Added 'message' for standard styling
@@ -233,21 +247,23 @@ document.addEventListener('DOMContentLoaded', () => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
-  async function handleSend() {
-    const prompt = promptEl.value.trim();
-    if (!prompt) {
-      console.warn('No prompt entered');
+  /** Runs Gemini (+ TTS) for this prompt. `source` is 'type' or 'voice' for the chat label. */
+  async function runGeminiPipeline(prompt, source) {
+    const trimmed = prompt.trim();
+    if (!trimmed) {
+      console.warn('No prompt to send');
       return;
     }
 
-    appendMessage(`You: ${prompt}`, 'msg-user');
+    const youLabel = source === 'voice' ? `You (voice): ${trimmed}` : `You: ${trimmed}`;
+    appendMessage(youLabel, 'msg-user');
     promptEl.value = '';
 
     appendMessage('AURA: thinking...', 'msg-bot');
     const lastBotBubble = chatWindow.lastElementChild;
 
     try {
-      const responseText = await talkToGemini(prompt);
+      const responseText = await talkToGemini(trimmed);
       const finalText = responseText || 'AURA is silent, but your message was sent.';
 
       if (lastBotBubble) {
@@ -272,7 +288,92 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Listeners
+  function handleSend() {
+    runGeminiPipeline(promptEl.value, 'type');
+  }
+
+  function stopListening() {
+    listening = false;
+    if (speakBtn) speakBtn.textContent = 'Speak';
+    try {
+      if (recognition) recognition.stop();
+    } catch {
+      /* already stopped */
+    }
+  }
+
+  function startListening() {
+    if (!RecognitionCtor || !speakBtn) return;
+
+    recognition = new RecognitionCtor();
+    recognition.lang = navigator.language || 'en-US';
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    recognition.maxAlternatives = 1;
+
+    voiceFinalText = '';
+    listening = true;
+    speakBtn.textContent = 'Stop';
+
+    recognition.onstart = () => {
+      if (statusLine) statusLine.textContent = 'Listening… speak your message for Gemini.';
+    };
+
+    recognition.onresult = (ev) => {
+      let interim = '';
+      for (let i = ev.resultIndex; i < ev.results.length; i++) {
+        const piece = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) {
+          voiceFinalText += piece;
+        } else {
+          interim += piece;
+        }
+      }
+      promptEl.value = `${voiceFinalText}${interim}`.trim();
+    };
+
+    recognition.onerror = (ev) => {
+      console.error('[AURA] Speech:', ev.error);
+      if (statusLine) statusLine.textContent = `Mic/speech: ${ev.error}`;
+      stopListening();
+    };
+
+    recognition.onend = () => {
+      stopListening();
+      if (statusLine) {
+        checkElevenLabsConnection().then((r) => {
+          if (statusLine) statusLine.textContent = r.label;
+        });
+      }
+      const spoken = (voiceFinalText || promptEl.value).trim();
+      if (spoken) {
+        runGeminiPipeline(spoken, 'voice');
+      }
+    };
+
+    try {
+      recognition.start();
+    } catch (e) {
+      console.error('[AURA] recognition.start:', e);
+      stopListening();
+      if (statusLine) statusLine.textContent = 'Could not start microphone — try again.';
+    }
+  }
+
+  if (speakBtn && RecognitionCtor) {
+    speakBtn.addEventListener('click', () => {
+      if (listening) {
+        try {
+          if (recognition) recognition.stop();
+        } catch {
+          /* */
+        }
+        return;
+      }
+      startListening();
+    });
+  }
+
   sendBtn.addEventListener('click', handleSend);
   promptEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
