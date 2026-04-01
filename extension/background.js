@@ -1,47 +1,63 @@
-require('dotenv').config();
-const HF_TOKEN = process.env.HF_TOKEN;
-
+import { HF_TOKEN } from './config.js';
 // background.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.type === 'CHECK_AURA') {
-        const mockScore = Math.random(); 
-        
+    if (request.type === 'CHECK_AURA') {        
         console.log("Brain received:", request.content);
         
-        sendResponse({ 
-            score: mockScore, 
+        askTheBrain(request.content).then(cringeScore => {
+            sendResponse({ 
+                score: cringeScore, 
+            });
         });
     }
     return true;
 });
 
-// The Chef listens for a "note" from the Waiter
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "checkCringe") {
-        askTheBrain(request.text).then(isCringe => {
-            sendResponse({ cringe: isCringe });
-        });
-        return true; // Keeps the line open for the answer
-    }
-});
-
 async function askTheBrain(userInput) {
-    const modelUrl = "https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis";
-    
-    const response = await fetch(modelUrl, {
-        headers: { Authorization: `Bearer ${HF_TOKEN}` },
-        method: "POST",
-        body: JSON.stringify({ inputs: userInput }),
-    });
+    const modelUrl = "https://router.huggingface.co/hf-inference/models/finiteautomata/bertweet-base-sentiment-analysis";
+    try {
+        const response = await fetch(modelUrl, {
+            headers: { 
+                "Authorization": `Bearer ${HF_TOKEN}`,
+                "Content-Type": "application/json"
+            },
+            method: "POST",
+            body: JSON.stringify({ inputs: userInput }),
+        });
 
-    const result = await response.json();
+        const result = await response.json();
+        console.log("Raw API result:", JSON.stringify(result));
 
-    // Check if the result exists and get the top label
-    if (result && result[0] && result[0][0]) {
-        const topResult = result[0][0]; 
-        console.log("AI says:", topResult.label); // Helpful for debugging! 
+        const negativeScore = result[0].find(item => item.label === 'NEG')?.score || 0;
 
-        return (topResult.label === "Very Negative" || topResult.label === "Negative");
+        // check for cringe words
+        const lowerInput = userInput.toLowerCase();
+        const isCringe = CRINGE_LIST.some(word => lowerInput.includes(word));
+
+        if (isCringe) {
+            return 1 - negativeScore; // flip signs
+        }
+
+        return negativeScore; 
+    } catch (error) {
+        console.error("Brain Connection Failed:", error);
+        return 0; // Default to 'Safe' if the API is down
     }
-    return false;
 }
+
+// force checker
+const CRINGE_LIST = [
+    "skibidi", "gyat", "rizz", 
+    "ohio", "sigma", "mewing",
+    "67", "ratio", "bussin", 
+    "sus", "yeet", "based", 
+    "poggers", "uwu", "rawr", 
+    "chud", "baby gronk", "griddy", 
+    "bombaclat", "sussy baka", "mog",
+    "bffr", "uwu", "xd", "owo", 
+    "sybau", "tmo", "ts", "diddy", 
+    "diddyblud", "tuff", "fine shyt", "shyt", "tweaking", 
+    "dih", "puh", "fuh", "bih", "chungus",
+    "mald", "mog", "tung", "tralalero",
+    "patapim", "brainrot", "unc"
+];
