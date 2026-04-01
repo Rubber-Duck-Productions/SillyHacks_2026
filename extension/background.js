@@ -29,13 +29,14 @@ async function askTheBrain(userInput) {
         console.log("Raw API result:", JSON.stringify(result));
 
         const negativeScore = result[0].find(item => item.label === 'NEG')?.score || 0;
+        const positiveScore = result[0].find(item => item.label === 'POS')?.score || 0;
 
         // check for cringe words
         const lowerInput = userInput.toLowerCase();
         const isCringe = CRINGE_LIST.some(word => lowerInput.includes(word));
 
         if (isCringe) {
-            return 1 - negativeScore; // flip signs
+            return Math.max(1 - negativeScore, 1 - positiveScore); // flip signs
         }
 
         return negativeScore; 
