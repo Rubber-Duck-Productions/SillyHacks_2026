@@ -2,7 +2,17 @@
   "manifest_version": 3,
   "name": "Aura Monitor",
   "version": "1.0",
-  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
   "host_permissions": [
     "https://api.elevenlabs.io/*",
     "https://generativelanguage.googleapis.com/*"
