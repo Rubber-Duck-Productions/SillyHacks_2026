@@ -22,7 +22,8 @@
   },
   "web_accessible_resources": [
   {
-    "resources": ["public/TheRockSideEye.jpg"],
+    "resources": ["public/TheRockSideEye.jpg",
+                   "public/VineBoom.mp3"],
     "matches": ["<all_urls>"]
   }
 ]

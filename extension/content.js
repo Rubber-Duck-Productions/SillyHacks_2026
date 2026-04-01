@@ -152,8 +152,8 @@ function triggerPopup(element) {
     document.body.appendChild(overlay);
 
     // 6. Play the Audio (Vine Boom)
-    //const audio = new Audio(chrome.runtime.getURL('vine-boom.mp3'));
-    //audio.play();
+    const audio = new Audio(chrome.runtime.getURL('public/VineBoom.mp3'));
+    audio.play();
 
     // 7. Cleanup after 4 seconds (Removed automatically)
     setTimeout(() => {
