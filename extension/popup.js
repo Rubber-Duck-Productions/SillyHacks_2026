@@ -1,15 +1,17 @@
-// --- 1. Global Configuration ---
+// --- 1. Defaults (override by saving keys in the popup → chrome.storage.local) ---
 const CONFIG = {
   ELEVENLABS_VOICE_ID: 'kE6lVLC9rXp4T2rZ8dMw',
   ELEVENLABS_API_KEY: 'sk_50ad9403cf4ad78ba36e1e1f4f3ada8eceed6141d95ee91f',
-  GEMINI_API_KEY:'AIzaSyDjco007dTmB4wwwA1oxxYtxTfMVsVTano',
+  GEMINI_API_KEY: 'AIzaSyDjco007dTmB4wwwA1oxxYtxTfMVsVTano',
 };
 
-// --- 2. Gemini Text Generation ---
-function isGeminiQuotaOrRateLimit(status, message) {
-  if (status === 429) return true;
-  if (!message) return false;
-  return /quota|rate limit|rate-limit|resource.exhausted|Resource exhausted/i.test(message);
+function resolveGeminiKey() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(['gemini_api_key'], (r) => {
+      const k = (r.gemini_api_key || CONFIG.GEMINI_API_KEY || '').trim();
+      resolve(k);
+    });
+  });
 }
 
 /** When Gemini free-tier quota is hit, still give a short villain line so TTS + UI work. */
@@ -23,80 +25,32 @@ function localAuraVillainLine(userPrompt) {
   return lines[Math.floor(Math.random() * lines.length)];
 }
 
-async function generateGeminiContent(modelId, userPrompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`;
-  const payload = {
-    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-    systemInstruction: {
-      parts: [{ text: 'You are an elite anime antagonist named AURA. Keep responses short, dramatic, and intimidating.' }]
-    },
-    generationConfig: { maxOutputTokens: 100 }
-  };
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await response.json().catch(() => ({}));
-  return { response, data };
-}
-
 async function getGeminiResponse(userPrompt) {
-  if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY === 'YOUR_GEMINI_KEY') {
+  const apiKey = await resolveGeminiKey();
+  if (!apiKey || apiKey === 'YOUR_GEMINI_KEY') {
     console.warn('Gemini API key is missing; using local fallback response');
-    return `AURA: I see your message: "${userPrompt}"`; // simple local fallback
+    return `AURA: I see your message: "${userPrompt}"`;
   }
 
-  /** Prefer current free-tier models first; avoid deprecated 2.0 for new keys hitting odd 429s. */
-  const models = [
-    'gemini-2.5-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-1.5-flash',
-    'gemini-2.0-flash',
-  ];
-  let lastErr = null;
-  /** False once we see 404/400 (bad model), empty body, etc. — means “not project-wide quota only”. */
-  let anyNonQuotaFailure = false;
-
-  for (const modelId of models) {
-    const { response, data } = await generateGeminiContent(modelId, userPrompt);
-    const msg = data?.error?.message || response.statusText;
-
-    if (response.ok) {
-      const candidate = data.candidates?.[0];
-      const text = candidate?.content?.parts?.find((p) => p.text)?.text;
-      if (text) return text;
-
-      anyNonQuotaFailure = true;
-      const reason = candidate?.finishReason || data.promptFeedback?.blockReason || 'unknown';
-      lastErr = new Error(`No text in response (finishReason: ${reason})`);
-      continue;
-    }
-
-    // Same key can 429 on one model but succeed on another (pool limits, deprecation, RPM).
-    if (isGeminiQuotaOrRateLimit(response.status, msg)) {
-      lastErr = new Error(`Gemini (${modelId}) ${response.status}: ${msg}`);
-      continue;
-    }
-
-    anyNonQuotaFailure = true;
-    lastErr = new Error(`Gemini (${modelId}) ${response.status}: ${msg}`);
-
-    if (response.status !== 404 && response.status !== 400) {
-      throw lastErr;
-    }
-  }
-
-  if (!anyNonQuotaFailure && lastErr) {
-    console.warn(
-      '[AURA] Quota/rate limit on every model tried — using offline lines. New keys are tied to a Google Cloud project; confirm Generative Language API + billing at https://aistudio.google.com/ and https://ai.google.dev/gemini-api/docs/rate-limits'
+  try {
+    return await fetchGeminiText(
+      apiKey,
+      userPrompt,
+      'You are an elite anime antagonist named AURA. Keep responses short, dramatic, and intimidating but also sweet.',
+      { maxOutputTokens: 100 }
     );
-    return localAuraVillainLine(userPrompt);
+  } catch (e) {
+    if (e && e.message === 'GEMINI_QUOTA_EXHAUSTED') {
+      console.warn(
+        '[AURA] Quota/rate limit on every model — offline lines. See https://ai.google.dev/gemini-api/docs/rate-limits'
+      );
+      return localAuraVillainLine(userPrompt);
+    }
+    if (e && e.message === 'GEMINI_NO_KEY') {
+      return `AURA: I see your message: "${userPrompt}"`;
+    }
+    throw e;
   }
-
-  throw lastErr || new Error('Gemini: all models failed');
 }
 
 // --- 3. ElevenLabs — verify key + voice (runs once when popup opens) ---
@@ -208,36 +162,54 @@ async function talkToGemini(prompt) {
   return getGeminiResponse(prompt);
 }
 
-function getSpeechRecognitionCtor() {
-  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
-}
 
 document.addEventListener('DOMContentLoaded', () => {
   const sendBtn = document.getElementById('send-btn');
-  const speakBtn = document.getElementById('speak-btn');
   const promptEl = document.getElementById('prompt');
   const chatWindow = document.getElementById('chat-window');
   const statusLine = document.getElementById('status-line');
+  const geminiKeyInput = document.getElementById('gemini-api-key');
+  const saveKeysBtn = document.getElementById('save-keys-btn');
+  const keysSavedHint = document.getElementById('keys-saved-hint');
 
-  const RecognitionCtor = getSpeechRecognitionCtor();
-  let recognition = null;
-  let voiceFinalText = '';
-  let listening = false;
+  chrome.storage.local.get(['gemini_api_key'], (r) => {
+    if (geminiKeyInput && r.gemini_api_key) {
+      geminiKeyInput.value = r.gemini_api_key;
+    }
+  });
 
-  checkElevenLabsConnection()
-    .then((result) => {
-      if (statusLine) statusLine.textContent = result.label;
-    })
-    .catch((e) => {
-      if (statusLine) {
-        statusLine.textContent = `ElevenLabs: check failed — ${e instanceof Error ? e.message : String(e)}`;
-      }
+  if (saveKeysBtn) {
+    saveKeysBtn.addEventListener('click', () => {
+      const key = geminiKeyInput ? geminiKeyInput.value.trim() : '';
+      chrome.storage.local.set({ gemini_api_key: key }, () => {
+        if (keysSavedHint) {
+          keysSavedHint.textContent = 'Saved — used for popup chat + page Enter interception.';
+          setTimeout(() => {
+            keysSavedHint.textContent = '';
+          }, 3500);
+        }
+        refreshStatusLine();
+      });
     });
-
-  if (!RecognitionCtor && speakBtn) {
-    speakBtn.disabled = true;
-    speakBtn.title = 'Speech recognition not available in this browser';
   }
+
+  function refreshStatusLine() {
+    Promise.all([checkElevenLabsConnection(), resolveGeminiKey()])
+      .then(([el, gKey]) => {
+        if (!statusLine) return;
+        const geminiOk = gKey && gKey.length >= 20;
+        statusLine.textContent = `${el.label} · ${
+          geminiOk ? 'Gemini: key stored (popup + pages)' : 'Gemini: add key above for chat + vibe check'
+        }`;
+      })
+      .catch((e) => {
+        if (statusLine) {
+          statusLine.textContent = `Status error — ${e instanceof Error ? e.message : String(e)}`;
+        }
+      });
+  }
+
+  refreshStatusLine();
 
   function appendMessage(text, cssClass) {
     const message = document.createElement('div');
@@ -247,23 +219,21 @@ document.addEventListener('DOMContentLoaded', () => {
     chatWindow.scrollTop = chatWindow.scrollHeight;
   }
 
-  /** Runs Gemini (+ TTS) for this prompt. `source` is 'type' or 'voice' for the chat label. */
-  async function runGeminiPipeline(prompt, source) {
-    const trimmed = prompt.trim();
-    if (!trimmed) {
-      console.warn('No prompt to send');
+  async function handleSend() {
+    const prompt = promptEl.value.trim();
+    if (!prompt) {
+      console.warn('No prompt entered');
       return;
     }
 
-    const youLabel = source === 'voice' ? `You (voice): ${trimmed}` : `You: ${trimmed}`;
-    appendMessage(youLabel, 'msg-user');
+    appendMessage(`You: ${prompt}`, 'msg-user');
     promptEl.value = '';
 
     appendMessage('AURA: thinking...', 'msg-bot');
     const lastBotBubble = chatWindow.lastElementChild;
 
     try {
-      const responseText = await talkToGemini(trimmed);
+      const responseText = await talkToGemini(prompt);
       const finalText = responseText || 'AURA is silent, but your message was sent.';
 
       if (lastBotBubble) {
@@ -288,92 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  function handleSend() {
-    runGeminiPipeline(promptEl.value, 'type');
-  }
-
-  function stopListening() {
-    listening = false;
-    if (speakBtn) speakBtn.textContent = 'Speak';
-    try {
-      if (recognition) recognition.stop();
-    } catch {
-      /* already stopped */
-    }
-  }
-
-  function startListening() {
-    if (!RecognitionCtor || !speakBtn) return;
-
-    recognition = new RecognitionCtor();
-    recognition.lang = navigator.language || 'en-US';
-    recognition.interimResults = true;
-    recognition.continuous = false;
-    recognition.maxAlternatives = 1;
-
-    voiceFinalText = '';
-    listening = true;
-    speakBtn.textContent = 'Stop';
-
-    recognition.onstart = () => {
-      if (statusLine) statusLine.textContent = 'Listening… speak your message for Gemini.';
-    };
-
-    recognition.onresult = (ev) => {
-      let interim = '';
-      for (let i = ev.resultIndex; i < ev.results.length; i++) {
-        const piece = ev.results[i][0].transcript;
-        if (ev.results[i].isFinal) {
-          voiceFinalText += piece;
-        } else {
-          interim += piece;
-        }
-      }
-      promptEl.value = `${voiceFinalText}${interim}`.trim();
-    };
-
-    recognition.onerror = (ev) => {
-      console.error('[AURA] Speech:', ev.error);
-      if (statusLine) statusLine.textContent = `Mic/speech: ${ev.error}`;
-      stopListening();
-    };
-
-    recognition.onend = () => {
-      stopListening();
-      if (statusLine) {
-        checkElevenLabsConnection().then((r) => {
-          if (statusLine) statusLine.textContent = r.label;
-        });
-      }
-      const spoken = (voiceFinalText || promptEl.value).trim();
-      if (spoken) {
-        runGeminiPipeline(spoken, 'voice');
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch (e) {
-      console.error('[AURA] recognition.start:', e);
-      stopListening();
-      if (statusLine) statusLine.textContent = 'Could not start microphone — try again.';
-    }
-  }
-
-  if (speakBtn && RecognitionCtor) {
-    speakBtn.addEventListener('click', () => {
-      if (listening) {
-        try {
-          if (recognition) recognition.stop();
-        } catch {
-          /* */
-        }
-        return;
-      }
-      startListening();
-    });
-  }
-
+  // Listeners
   sendBtn.addEventListener('click', handleSend);
   promptEl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
