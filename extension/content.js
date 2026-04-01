@@ -143,15 +143,15 @@ function triggerPopup(element) {
     const imgnum = Math.floor(Math.random() * 9);
     let imgURL = "";
     switch(imgnum) {
-        case 0: imgURL = "public/DogGiveUp.jpg";
-        case 1: imgURL = "public/DogShush.jpg";
-        case 2: imgURL = "public/OMG.jpg";
-        case 3: imgURL = "public/Praying.jpg";
-        case 4: imgURL = "public/ShaqPause.jpg";
-        case 5: imgURL = "public/SusStare.jpg";
-        case 6: imgURL = "public/TheRockSideEye.jpg";
-        case 7: imgURL = "public/WaitBud.jpg";
-        case 8: imgURL = "public/WhatIsThis.jpg";
+        case 0: imgURL = "public/DogGiveUp.jpg"; break;
+        case 1: imgURL = "public/DogShush.jpg"; break;
+        case 2: imgURL = "public/OMG.jpg"; break;
+        case 3: imgURL = "public/Praying.jpg"; break;
+        case 4: imgURL = "public/ShaqPause.jpg"; break;
+        case 5: imgURL = "public/SusStare.jpg"; break;
+        case 6: imgURL = "public/TheRockSideEye.jpg"; break;
+        case 7: imgURL = "public/WaitBud.jpg"; break;
+        case 8: imgURL = "public/WhatIsThis.jpg"; break;
     }
     popupContent.innerHTML = `
         <img src="${chrome.runtime.getURL(imgURL)}" 
@@ -170,9 +170,9 @@ function triggerPopup(element) {
     const audioNum = Math.floor(Math.random() * 3);
     audioURL = "";
     switch(audioNum) {
-        case 0: audioURL = "public/Fah.mp3";
-        case 1: audioURL = "public/Lie.mp3";
-        case 2: audioURL = "public/VineBoom.mp3";
+        case 0: audioURL = "public/Fah.mp3"; break;
+        case 1: audioURL = "public/Lie.mp3"; break;
+        case 2: audioURL = "public/VineBoom.mp3"; break;
     }
     const audio = new Audio(chrome.runtime.getURL(audioURL));
     audio.play();
