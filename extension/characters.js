@@ -5,27 +5,29 @@ const CONFIG = {
   GEMINI_API_KEY:'AIzaSyDjco007dTmB4wwwA1oxxYtxTfMVsVTano',
 };
 
-// 1. Function to get text from Gemini
+// 1. Function to get text from Gemini (same behavior as popup.js; for console/testing)
 async function getGeminiResponse(userPrompt) {
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: userPrompt }]
-        }],
-        // Optional: Ensure the response is short for better TTS performance
-        generationConfig: {
-          maxOutputTokens: 100, 
-        }
-      })
-    });
-
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: { maxOutputTokens: 100 },
+        }),
+      }
+    );
     const data = await response.json();
-    return data.candidates[0].content.parts[0].text;
+    if (!response.ok) {
+      throw new Error(data?.error?.message || `HTTP ${response.status}`);
+    }
+    const text = data.candidates?.[0]?.content?.parts?.find((p) => p.text)?.text;
+    if (text) return text;
+    throw new Error('No text in Gemini response');
   } catch (error) {
-    console.error("Gemini Error:", error);
+    console.error('Gemini Error:', error);
     return "I'm having trouble thinking of what to say right now.";
   }
 }
@@ -75,5 +77,4 @@ async function talkToGemini(userInput) {
   await generateAnimeSpeech(aiText);
 }
 
-// Example usage:
-talkToGemini("Write a short, intimidating 1-sentence anime villain quote.");
+// Call talkToGemini(...) from the console when testing; the extension popup uses popup.js.

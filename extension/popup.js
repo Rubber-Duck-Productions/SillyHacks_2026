@@ -6,16 +6,11 @@ const CONFIG = {
 };
 
 // --- 2. Gemini Text Generation ---
-async function getGeminiResponse(userPrompt) {
-  if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY === 'YOUR_GEMINI_KEY') {
-    console.warn('Gemini API key is missing; using local fallback response');
-    return `AURA: I see your message: "${userPrompt}"`; // simple local fallback
-  }
-
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`;
+async function generateGeminiContent(modelId, userPrompt) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`;
   const payload = {
-    contents: [{ parts: [{ text: userPrompt }] }],
-    system_instruction: {
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    systemInstruction: {
       parts: [{ text: 'You are an elite anime antagonist named AURA. Keep responses short, dramatic, and intimidating.' }]
     },
     generationConfig: { maxOutputTokens: 100 }
@@ -27,16 +22,42 @@ async function getGeminiResponse(userPrompt) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) {
-    throw new Error(`Gemini API HTTP ${response.status}`);
+  const data = await response.json().catch(() => ({}));
+  return { response, data };
+}
+
+async function getGeminiResponse(userPrompt) {
+  if (!CONFIG.GEMINI_API_KEY || CONFIG.GEMINI_API_KEY === 'YOUR_GEMINI_KEY') {
+    console.warn('Gemini API key is missing; using local fallback response');
+    return `AURA: I see your message: "${userPrompt}"`; // simple local fallback
   }
 
-  const data = await response.json();
-  if (!data.candidates || data.candidates.length === 0) {
-    throw new Error('AURA chose silence.');
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash'];
+  let lastErr = null;
+
+  for (const modelId of models) {
+    const { response, data } = await generateGeminiContent(modelId, userPrompt);
+
+    if (response.status === 404 || response.status === 400) {
+      const msg = data?.error?.message || response.statusText;
+      lastErr = new Error(`Gemini (${modelId}) ${response.status}: ${msg}`);
+      continue;
+    }
+
+    if (!response.ok) {
+      const msg = data?.error?.message || response.statusText;
+      throw new Error(`Gemini API ${response.status}: ${msg}`);
+    }
+
+    const candidate = data.candidates?.[0];
+    const text = candidate?.content?.parts?.find((p) => p.text)?.text;
+    if (text) return text;
+
+    const reason = candidate?.finishReason || data.promptFeedback?.blockReason || 'unknown';
+    lastErr = new Error(`No text in response (finishReason: ${reason})`);
   }
 
-  return data.candidates[0].content.parts[0].text;
+  throw lastErr || new Error('Gemini: all models failed');
 }
 
 // --- 3. ElevenLabs Voice Generation ---
@@ -55,13 +76,22 @@ async function generateAnimeSpeech(text) {
     }),
   });
 
-  if (!response.ok) throw new Error('TTS Failed');
+  if (!response.ok) {
+    const errText = await response.text().catch(() => '');
+    let detail = errText;
+    try {
+      const j = JSON.parse(errText);
+      detail = j?.detail?.message || j?.detail || j?.message || errText;
+    } catch {
+      /* use raw */
+    }
+    throw new Error(`ElevenLabs HTTP ${response.status}: ${detail}`);
+  }
 
   const audioBlob = await response.blob();
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
-  
-  
+  audio.addEventListener('ended', () => URL.revokeObjectURL(audioUrl));
   return audio.play();
 }
 
@@ -113,7 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       console.error('Gemini pipeline error:', err);
       if (lastBotBubble) {
-        lastBotBubble.textContent = 'AURA: Could not get reply (check API key or network).';
+        const msg = err instanceof Error ? err.message : String(err);
+        lastBotBubble.textContent = `AURA: ${msg.slice(0, 280)}${msg.length > 280 ? '…' : ''}`;
       }
     }
   }
