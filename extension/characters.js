@@ -2,7 +2,7 @@
 const CONFIG = {
   ELEVENLABS_VOICE_ID: 'kE6lVLC9rXp4T2rZ8dMw',
   ELEVENLABS_API_KEY: 'sk_50ad9403cf4ad78ba36e1e1f4f3ada8eceed6141d95ee91f',
-  GEMINI_API_KEY:'AIzaSyDjco007dTmB4wwwA1oxxYtxTfMVsVTano',
+  GEMINI_API_KEY:'AIzaSyA6l1nz7XWDyGBgBqaou_6O3-Wp86bSgsg',
 };
 
 // 1. Function to get text from Gemini (same behavior as popup.js; for console/testing)
