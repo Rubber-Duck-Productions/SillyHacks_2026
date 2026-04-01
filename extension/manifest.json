@@ -19,5 +19,11 @@
   ],
   "action": {
     "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+  {
+    "resources": ["public/TheRockSideEye.jpg"],
+    "matches": ["<all_urls>"]
   }
+]
 }
