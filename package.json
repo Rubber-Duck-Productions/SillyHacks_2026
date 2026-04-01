@@ -1,0 +1,11 @@
+{
+  "name": "sillyhacks-2026",
+  "private": true,
+  "scripts": {
+    "extension:env": "node scripts/inject-extension-env.mjs",
+    "postinstall": "node scripts/inject-extension-env.mjs"
+  },
+  "devDependencies": {
+    "dotenv": "^16.4.7"
+  }
+}

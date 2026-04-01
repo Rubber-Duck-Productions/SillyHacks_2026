@@ -2,20 +2,30 @@
   "manifest_version": 3,
   "name": "Aura Monitor",
   "version": "1.0",
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": [
-    "https://api-inference.huggingface.co/*"
-],
+  "permissions": ["storage", "activeTab", "scripting"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["content.js"],
+      "run_at": "document_start"
     }
+  ],
+  "host_permissions": [
+    "https://api.elevenlabs.io/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api-inference.huggingface.co/*"
   ],
   "action": {
     "default_popup": "popup.html"
+  },
+  "web_accessible_resources": [
+  {
+    "resources": ["public/TheRockSideEye.jpg",
+                   "public/VineBoom.mp3"],
+    "matches": ["<all_urls>"]
   }
+]
 }

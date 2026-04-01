@@ -1,14 +1,22 @@
 <!DOCTYPE html>
 <html>
+<head>
+
+</head>
 <body>
     <div class="aura-circle"></div>
     <h1>AURA_MONITOR v1.0</h1>
-    <p>Real-time moral surveillance active.</p>
-    
-    <div class="status">VIBE: STABLE</div>
-
-    <p style="margin-top: 15px; font-style: italic;">
-        "We see what you type. For your own good."
-    </p>
+    <div id="chat-window"></div>
+    <div id="controls">
+        <textarea id="prompt" placeholder="Type or use Speak, then Send…" rows="2"></textarea>
+        <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
+            <button type="button" id="speak-btn" title="Speak to Gemini">Speak</button>
+            <button type="button" id="send-btn">Send</button>
+        </div>
+    </div>
+    <p class="status" id="status-line">Checking ElevenLabs…</p>
+    <p style="margin-top: 8px; font-style: italic;">"We see what you type. For your own good."</p>
+    <script src="aura-config.js"></script>
+    <script src="popup.js"></script>
 </body>
 </html>
