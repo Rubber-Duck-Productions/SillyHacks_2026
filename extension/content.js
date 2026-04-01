@@ -97,69 +97,81 @@ function getElementText(el) {
 }
 
 function triggerPopup(element) {
-    // 1. Prevent Stacking: If an overlay exists, get rid of it.
-    const existing = document.getElementById('aura-overlay');
-    if (existing) existing.remove();
+    const existingBackdrop = document.getElementById('aura-overlay-backdrop');
+    const existingCenter = document.getElementById('aura-overlay-center');
+    existingBackdrop?.remove();
+    existingCenter?.remove();
 
-    // 2. Create the Gray-out Overlay (Centered Container)
-    const overlay = document.createElement('div');
-    overlay.id = 'aura-overlay';
-    // Style the backdrop: Full screen, semi-transparent, centered content
-    overlay.style.cssText = `
+    // Dim full viewport (below the Rock stack)
+    const backdrop = document.createElement('div');
+    backdrop.id = 'aura-overlay-backdrop';
+    backdrop.style.cssText = `
         position: fixed;
-        top: 0;
-        left: 0;
+        inset: 0;
         width: 100vw;
         height: 100vh;
-        background: rgba(0, 0, 0, 0.7); /* Dims the rest of the page */
-        z-index: 2147483647; /* Max allowed z-index to stay on top of everything */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        backdrop-filter: blur(2px); /* Optional: slight blur effect */
-        pointer-events: all; /* Blocks clicks on the rest of the page */
+        background: rgba(0, 0, 0, 0.72);
+        z-index: 2147483646;
+        backdrop-filter: blur(3px);
+        pointer-events: auto;
     `;
 
-    // 3. Create the Inner Roast Popup Content
-    const popupContent = document.createElement('div');
-    popupContent.id = 'aura-popup-content';
-    // Style the actual card
-    popupContent.style.cssText = `
-        background: #1a1a1a;
-        color: #ff4757; /* Toxic red color */
-        padding: 30px;
-        border-radius: 12px;
-        font-family: 'Courier New', monospace; /* "Hacker/Terminal" vibe */
-        font-size: 20px;
-        text-align: center;
+    // Rock + message pinned to exact viewport center (browser window middle)
+    const center = document.createElement('div');
+    center.id = 'aura-overlay-center';
+    center.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2147483647;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 15px;
-        min-width: 300px;
+        justify-content: center;
+        gap: 14px;
+        max-width: min(92vw, 420px);
+        pointer-events: none;
+        text-align: center;
     `;
 
-    // 4. Populate Content (Image + Text)
-    popupContent.innerHTML = `
-        <img src="${chrome.runtime.getURL('public/TheRockSideEye.jpg')}" 
-        <div style="color: #ffffff; font-size: 16px;">
-            Are you sure you wanna send that bro?<br>
-        </div>
+    const rockUrl = chrome.runtime.getURL('public/TheRockSideEye.jpg');
+    const img = document.createElement('img');
+    img.src = rockUrl;
+    img.alt = 'AURA';
+    img.style.cssText = `
+        display: block;
+        width: min(72vw, 280px);
+        height: auto;
+        border-radius: 14px;
+        border: 4px solid #ff4757;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.55);
+        pointer-events: none;
     `;
 
-    // 5. Assemble and Inject
-    overlay.appendChild(popupContent);
-    document.body.appendChild(overlay);
+    const caption = document.createElement('div');
+    caption.style.cssText = `
+        color: #ffffff;
+        font: 600 17px/1.35 system-ui, -apple-system, sans-serif;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+        pointer-events: none;
+    `;
+    caption.textContent = 'Are you sure you wanna send that bro?';
 
-    // 6. Play the Audio (Vine Boom)
+    center.appendChild(img);
+    center.appendChild(caption);
+    document.body.appendChild(backdrop);
+    document.body.appendChild(center);
+
     const audio = new Audio(chrome.runtime.getURL('public/VineBoom.mp3'));
-    audio.play();
+    audio.play().catch(() => {});
 
-    // 7. Cleanup after 4 seconds (Removed automatically)
-    setTimeout(() => {
-        // Use animation/fadeout here if you are feeling fancy
-        overlay.remove();
-    }, 4000);
+    const tearDown = () => {
+        backdrop.remove();
+        center.remove();
+    };
+    backdrop.addEventListener('click', tearDown);
+    setTimeout(tearDown, 4000);
 }
 
 // allow sending

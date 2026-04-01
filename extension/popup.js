@@ -1,3 +1,6 @@
+/** Avatar clip under extension/ — must match a real file and manifest web_accessible_resources */
+const AVATAR_VIDEO_FILE = 'media/268766_medium.mp4';
+
 // --- 1. Global Configuration (secrets from .env → npm run extension:env → aura-config.js) ---
 const CONFIG = {
   GEMINI_API_KEY: (typeof AURA_GEMINI_API_KEY !== 'undefined' ? AURA_GEMINI_API_KEY : '').trim(),
@@ -149,6 +152,108 @@ function parseElevenLabsErrorBody(errText) {
   return errText.slice(0, 120);
 }
 
+function startAvatarVideo() {
+  const wrap = document.getElementById('avatar-wrap');
+  const v = document.getElementById('aura-avatar-video');
+  if (!v || wrap?.classList.contains('show-hint')) return;
+  v.muted = true;
+  v.loop = true;
+  v.currentTime = 0;
+  wrap?.classList.add('is-playing');
+  v.play().catch((err) => console.warn('[AURA] avatar video play():', err));
+}
+
+function stopAvatarVideo() {
+  const wrap = document.getElementById('avatar-wrap');
+  const v = document.getElementById('aura-avatar-video');
+  if (!v) return;
+  v.pause();
+  try {
+    v.currentTime = 0;
+  } catch {
+    /* */
+  }
+  wrap?.classList.remove('is-playing');
+}
+
+function initAvatarVideoUi() {
+  const wrap = document.getElementById('avatar-wrap');
+  const video = document.getElementById('aura-avatar-video');
+  if (!wrap || !video) return;
+
+  wrap.classList.remove('show-hint');
+
+  if (typeof chrome !== 'undefined' && chrome.runtime?.getURL) {
+    video.replaceChildren();
+    video.src = chrome.runtime.getURL(AVATAR_VIDEO_FILE);
+  } else {
+    video.replaceChildren();
+    const s = document.createElement('source');
+    s.src = AVATAR_VIDEO_FILE;
+    s.type = 'video/mp4';
+    video.appendChild(s);
+  }
+
+  const showHint = () => {
+    const err = video.error;
+    if (err) {
+      console.warn('[AURA] Avatar video error', err.code, err.message);
+    }
+    wrap.classList.add('show-hint');
+  };
+
+  video.addEventListener('error', showHint);
+  video.addEventListener('loadeddata', () => wrap.classList.remove('show-hint'));
+  video.addEventListener('canplay', () => wrap.classList.remove('show-hint'));
+
+  video.load();
+}
+
+function escapeHtml(text) {
+  const d = document.createElement('div');
+  d.textContent = text;
+  return d.innerHTML;
+}
+
+function dismissAuraMemeOverlay() {
+  document.getElementById('aura-popup-meme-overlay')?.remove();
+}
+
+/** Rock meme + Vine boom when AURA speaks (ElevenLabs). Click overlay to dismiss early. */
+function showAuraMemeStinger(replyPreview) {
+  if (typeof chrome === 'undefined' || !chrome.runtime?.getURL) return;
+
+  dismissAuraMemeOverlay();
+
+  const preview = (replyPreview || '').trim();
+  const short =
+    preview.length > 140 ? `${preview.slice(0, 140)}…` : preview || '…';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'aura-popup-meme-overlay';
+  overlay.className = 'aura-meme-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-label', 'AURA reaction');
+
+  overlay.innerHTML = `
+    <div class="aura-meme-card">
+      <img class="aura-meme-img" src="${chrome.runtime.getURL('public/TheRockSideEye.jpg')}" alt="" />
+      <p class="aura-meme-caption">AURA has entered the chat</p>
+      <p class="aura-meme-sub">${escapeHtml(short)}</p>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const vine = new Audio(chrome.runtime.getURL('public/VineBoom.mp3'));
+  vine.volume = 0.9;
+  vine.play().catch((err) => console.warn('[AURA] Vine boom:', err));
+
+  const remove = () => dismissAuraMemeOverlay();
+  overlay.addEventListener('click', remove);
+  setTimeout(remove, 3800);
+}
+
 // --- 4. ElevenLabs Voice Generation ---
 async function generateAnimeSpeech(text) {
   const trimmed = (text || '').trim();
@@ -192,14 +297,21 @@ async function generateAnimeSpeech(text) {
   }
   const audioUrl = URL.createObjectURL(audioBlob);
   const audio = new Audio(audioUrl);
-
-  const cleanup = () => URL.revokeObjectURL(audioUrl);
+  
+  const cleanup = () => {
+    dismissAuraMemeOverlay();
+    stopAvatarVideo();
+    URL.revokeObjectURL(audioUrl);
+  };
   audio.addEventListener('ended', cleanup, { once: true });
   audio.addEventListener('error', cleanup, { once: true });
 
   try {
+    showAuraMemeStinger(trimmed);
+    startAvatarVideo();
     await audio.play();
   } catch (e) {
+    dismissAuraMemeOverlay();
     cleanup();
     throw new Error(
       `ElevenLabs: audio blocked — ${e instanceof Error ? e.message : String(e)} (try interacting with the page again)`
@@ -222,6 +334,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const promptEl = document.getElementById('prompt');
   const chatWindow = document.getElementById('chat-window');
   const statusLine = document.getElementById('status-line');
+
+  initAvatarVideoUi();
 
   const RecognitionCtor = getSpeechRecognitionCtor();
   let recognition = null;

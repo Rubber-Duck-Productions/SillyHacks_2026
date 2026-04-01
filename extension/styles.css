@@ -1,5 +1,105 @@
-.status{
-    font-size: 100px;
-    font-weight: bold;
-    color: green;
+.status {
+  font-size: 12px;
+  font-weight: normal;
+  color: #1a7f37;
+}
+
+.avatar-wrap {
+  width: 100%;
+  max-width: 280px;
+  margin: 0 auto 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0f0f12;
+  border: 1px solid #2a2a32;
+}
+
+.aura-avatar-video {
+  display: block;
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+  vertical-align: middle;
+}
+
+.avatar-wrap.is-playing .aura-avatar-video {
+  outline: 2px solid #6b5ce7;
+  outline-offset: -2px;
+}
+
+.avatar-hint {
+  display: none;
+  margin: 0;
+  padding: 10px 8px;
+  font-size: 11px;
+  color: #9aa;
+  text-align: center;
+  line-height: 1.35;
+}
+
+.avatar-wrap.show-hint .avatar-hint {
+  display: block;
+}
+
+.avatar-wrap.show-hint .aura-avatar-video {
+  display: none;
+}
+
+/* Meme + Vine stinger when ElevenLabs TTS plays (popup) */
+.aura-meme-overlay {
+  position: fixed;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(3px);
+  padding: 12px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.aura-meme-card {
+  background: #1a1a1a;
+  border: 2px solid #ff4757;
+  border-radius: 14px;
+  padding: 14px 16px;
+  max-width: 260px;
+  width: calc(100% - 24px);
+  margin: 0 auto;
+  text-align: center;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.aura-meme-img {
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  margin: 0 auto 10px;
+  border-radius: 10px;
+}
+
+.aura-meme-caption {
+  margin: 0 0 6px;
+  color: #ff4757;
+  font-size: 14px;
+  font-weight: bold;
+  font-family: system-ui, sans-serif;
+}
+
+.aura-meme-sub {
+  margin: 0;
+  color: #ddd;
+  font-size: 11px;
+  line-height: 1.35;
+  font-family: system-ui, sans-serif;
+  word-break: break-word;
 }
