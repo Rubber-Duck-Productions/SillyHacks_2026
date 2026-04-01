@@ -49,7 +49,8 @@ async function processAuraCheck(text, element, isTest = false) {
             console.log(`Cringe Level: ${Math.round(response.score * 100)}%`);
             if (response.score > 0.5) {
             // roast them
-            triggerPopup(element);
+                triggerPopup(element);
+            }
         } else if (response.score > 0.5) {
             // roast them
             triggerPopup(element);
