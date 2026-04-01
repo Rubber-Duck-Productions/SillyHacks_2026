@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html>
+<head>
+
+</head>
 <body>
     <div class="aura-circle"></div>
     <h1>AURA_MONITOR v1.0</h1>
-    <p>Real-time moral surveillance active.</p>
-    
-    <p style="margin-top: 15px; font-style: italic;">
-        "We see what you type. For your own good."
-    </p>
+    <div id="chat-window"></div>
+    <div id="controls">
+        <textarea id="prompt" placeholder="Ask Gemini..." rows="2"></textarea>
+        <button id="send-btn">Send</button>
+    </div>
+    <p style="margin-top: 8px; font-style: italic;">"We see what you type. For your own good."</p>
+    <script src="popup.js"></script>
 </body>
 </html>
