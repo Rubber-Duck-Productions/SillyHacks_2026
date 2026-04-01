@@ -1,14 +1,26 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; width: 320px; margin: 12px; }
+        .aura-circle { width: 36px; height: 36px; border-radius: 50%; background: #30C1FF; margin-bottom: 10px; }
+        #chat-window { border: 1px solid #ccc; padding: 8px; height: 220px; overflow-y: auto; background: #f9f9f9; margin-bottom: 8px; }
+        .msg-user { color: #162d57; margin: 4px 0; }
+        .msg-bot { color: #007a4a; margin: 4px 0; }
+        #controls { display: flex; gap: 8px; }
+        #prompt { flex: 1; min-height: 40px; }
+    </style>
+</head>
 <body>
     <div class="aura-circle"></div>
     <h1>AURA_MONITOR v1.0</h1>
-    <p>Real-time moral surveillance active.</p>
-    
-    <div class="status">VIBE: STABLE</div>
-
-    <p style="margin-top: 15px; font-style: italic;">
-        "We see what you type. For your own good."
-    </p>
+    <div id="chat-window"></div>
+    <div id="controls">
+        <textarea id="prompt" placeholder="Ask Gemini..." rows="2"></textarea>
+        <button id="send-btn">Send</button>
+    </div>
+    <p class="status">VIBE: STABLE</p>
+    <p style="margin-top: 8px; font-style: italic;">"We see what you type. For your own good."</p>
+    <script src="characters.js"></script>
 </body>
 </html>
