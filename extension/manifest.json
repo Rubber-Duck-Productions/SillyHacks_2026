@@ -2,10 +2,10 @@
   "manifest_version": 3,
   "name": "Aura Monitor",
   "version": "1.0",
+  "permissions": ["storage", "activeTab", "scripting"],
   "background": {
     "service_worker": "background.js"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
@@ -15,7 +15,8 @@
   ],
   "host_permissions": [
     "https://api.elevenlabs.io/*",
-    "https://generativelanguage.googleapis.com/*"
+    "https://generativelanguage.googleapis.com/*",
+    "https://api-inference.huggingface.co/*"
   ],
   "action": {
     "default_popup": "popup.html"
