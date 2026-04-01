@@ -11,13 +11,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 async function askTheBrain(userInput) {
-    const modelUrl = "https://router.huggingface.co/models/tabularisai/multilingual-sentiment-analysis";
+    const modelUrl = "https://router.huggingface.co/hf-inference/models/tabularisai/multilingual-sentiment-analysis";
+    
     const response = await fetch(modelUrl, {
         headers: { Authorization: `Bearer ${HF_TOKEN}` },
         method: "POST",
         body: JSON.stringify({ inputs: userInput }),
     });
+
     const result = await response.json();
-    const topResult = result[0][0]; 
-    return (topResult.label === "1 star" || topResult.label === "2 stars");
+
+    // Check if the result exists and get the top label
+    if (result && result[0] && result[0][0]) {
+        const topResult = result[0][0]; 
+        console.log("AI says:", topResult.label); // Helpful for debugging! 
+
+        return (topResult.label === "Very Negative" || topResult.label === "Negative");
+    }
+    return false;
 }

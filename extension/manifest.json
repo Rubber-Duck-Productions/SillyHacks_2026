@@ -4,7 +4,7 @@
   "version": "1.0",
   "permissions": ["activeTab", "scripting"],
   "host_permissions": [
-    "https://api-inference.huggingface.co/*"
+    "https://router.huggingface.co/*"
 ],
   "background": {
     "service_worker": "background.js"
