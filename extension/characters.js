@@ -1,8 +1,12 @@
-
+/* Load aura-config.js before this file (from npm run extension:env + .env). */
 const CONFIG = {
-  ELEVENLABS_VOICE_ID: 'kE6lVLC9rXp4T2rZ8dMw',
-  ELEVENLABS_API_KEY: 'sk_50ad9403cf4ad78ba36e1e1f4f3ada8eceed6141d95ee91f',
-  GEMINI_API_KEY:'AIzaSyA6l1nz7XWDyGBgBqaou_6O3-Wp86bSgsg',
+  GEMINI_API_KEY: (typeof AURA_GEMINI_API_KEY !== 'undefined' ? AURA_GEMINI_API_KEY : '').trim(),
+  ELEVENLABS_API_KEY: (typeof AURA_ELEVENLABS_API_KEY !== 'undefined' ? AURA_ELEVENLABS_API_KEY : '').trim(),
+  ELEVENLABS_VOICE_ID: (
+    typeof AURA_ELEVENLABS_VOICE_ID !== 'undefined' && String(AURA_ELEVENLABS_VOICE_ID).trim()
+      ? String(AURA_ELEVENLABS_VOICE_ID).trim()
+      : 'kE6lVLC9rXp4T2rZ8dMw'
+  ),
 };
 
 // 1. Function to get text from Gemini (same behavior as popup.js; for console/testing)
