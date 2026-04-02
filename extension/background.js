@@ -1,4 +1,15 @@
-import { HF_TOKEN } from './config.js';
+import { HF_TOKEN, AURA_GEMINI_API_KEY } from './config.js';
+
+const CONFIG = {
+  GEMINI_API_KEY: (typeof AURA_GEMINI_API_KEY !== 'undefined' ? AURA_GEMINI_API_KEY : '').trim(),
+  ELEVENLABS_API_KEY: (typeof AURA_ELEVENLABS_API_KEY !== 'undefined' ? AURA_ELEVENLABS_API_KEY : '').trim(),
+  ELEVENLABS_VOICE_ID: (
+    typeof AURA_ELEVENLABS_VOICE_ID !== 'undefined' && String(AURA_ELEVENLABS_VOICE_ID).trim()
+      ? String(AURA_ELEVENLABS_VOICE_ID).trim()
+      : 'kE6lVLC9rXp4T2rZ8dMw'
+  ),
+};
+
 // background.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'CHECK_AURA') {        
@@ -9,6 +20,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 score: cringeScore, 
             });
         });
+    }
+
+    // ROAST SECTION
+    if (request.type === 'GET_ROAST') {
+        fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: 
+                        `The user was about to send this message: "${request.content}". 
+                        Roast them in one short savage sentence. No quotes, no emojis, max 12 words.` 
+                    }]}],
+                    generationConfig: { maxOutputTokens: 50 }
+                })
+            }
+        )
+        .then(r => r.json())
+        .then(data => {
+            const roast = data.candidates?.[0]?.content?.parts?.[0]?.text || "bro really said that";
+            sendResponse({ roast });
+        })
+        .catch(() => sendResponse({ roast: "bro really said that" }));
     }
     return true;
 });

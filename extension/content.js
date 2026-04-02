@@ -44,20 +44,30 @@ async function handleKeyPress(event) {
 
 //aura checker
 async function processAuraCheck(text, element, isTest = false) {
-    chrome.runtime.sendMessage({ type: 'CHECK_AURA', content: text }, (response) => {
+    chrome.runtime.sendMessage({ type: 'CHECK_AURA', content: text }, async (response) => {
         if (isTest) {
             console.log(`Cringe Level: ${Math.round(response.score * 100)}%`);
             if (response.score > 0.5) {
             // roast them
-                triggerPopup(element);
+                const roast = await fetchGeminiRoast(text);
+                triggerPopup(element, roast);
             }
         } else if (response.score > 0.5) {
             // roast them
-            triggerPopup(element);
+            const roast = await fetchGeminiRoast(text);
+            triggerPopup(element, roast);
         } else {
             // allow send
             releaseMessage(element);
         }
+    });
+}
+
+async function fetchGeminiRoast(text) {
+    return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: 'GET_ROAST', content: text }, (response) => {
+            resolve(response?.roast || "bro really said that");
+        });
     });
 }
 
@@ -96,98 +106,152 @@ function getElementText(el) {
     return '';
 }
 
-function triggerPopup(element) {
-    const existingBackdrop = document.getElementById('aura-overlay-backdrop');
-    const existingCenter = document.getElementById('aura-overlay-center');
-    existingBackdrop?.remove();
-    existingCenter?.remove();
+function triggerPopup(element, roastText = "bro really said that") {
+    document.getElementById('aura-overlay-backdrop')?.remove();
+    document.getElementById('aura-overlay-center')?.remove();
 
-    // Dim full viewport (below the Rock stack)
     const backdrop = document.createElement('div');
     backdrop.id = 'aura-overlay-backdrop';
     backdrop.style.cssText = `
-        position: fixed;
-        inset: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(0, 0, 0, 0.72);
+        position: fixed; inset: 0;
+        width: 100vw; height: 100vh;
+        background: rgba(0,0,0,0.72);
         z-index: 2147483646;
         backdrop-filter: blur(3px);
         pointer-events: auto;
     `;
 
-    // Rock + message pinned to exact viewport center (browser window middle)
     const center = document.createElement('div');
     center.id = 'aura-overlay-center';
     center.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
+        position: fixed; top: 50%; left: 50%;
         transform: translate(-50%, -50%);
         z-index: 2147483647;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
         gap: 14px;
         max-width: min(92vw, 420px);
         pointer-events: none;
         text-align: center;
     `;
 
-    // 4. Populate Content (Image + Text)
-    const imgnum = Math.floor(Math.random() * 9);
-    let imgURL = "";
-    switch(imgnum) {
-        case 0: imgURL = "public/DogGiveUp.jpg"; break;
-        case 1: imgURL = "public/DogShush.jpg"; break;
-        case 2: imgURL = "public/OMG.jpg"; break;
-        case 3: imgURL = "public/Praying.jpg"; break;
-        case 4: imgURL = "public/ShaqPause.jpg"; break;
-        case 5: imgURL = "public/SusStare.jpg"; break;
-        case 6: imgURL = "public/TheRockSideEye.jpg"; break;
-        case 7: imgURL = "public/WaitBud.jpg"; break;
-        case 8: imgURL = "public/WhatIsThis.jpg"; break;
-    }
-    popupContent.innerHTML = `
-        <img src="${chrome.runtime.getURL(imgURL)}" 
-         style="width: 50vw; height: 50vh; object-fit: contain; display: block; margin: 0 auto;" 
-        />
-        <div style="color: #ff0000; font-size: 16px;">
-            Are you sure you wanna send that bro?<br>
-        </div>
+    const leftCol = document.createElement('div');
+    leftCol.style.cssText = `
+        display: flex; flex-direction: column;
+        align-items: center; gap: 14px;
+        pointer-events: auto;
     `;
 
-    const caption = document.createElement('div');
-    caption.style.cssText = `
-        color: #ffffff;
-        font: 600 17px/1.35 system-ui, -apple-system, sans-serif;
-        text-shadow: 0 2px 8px rgba(0,0,0,0.8);
+    // Right side — video
+    const rightCol = document.createElement('div');
+    rightCol.style.cssText = `
+        display: flex; align-items: center; justify-content: center;
         pointer-events: none;
     `;
-    caption.textContent = 'Are you sure you wanna send that bro?';
 
-    center.appendChild(img);
-    center.appendChild(caption);
+    // Image
+    const imgNum = Math.floor(Math.random() * 9);
+    const imgFiles = [
+        "public/DogGiveUp.jpg", "public/DogShush.jpg", "public/OMG.jpg",
+        "public/Praying.jpg",   "public/ShaqPause.jpg", "public/SusStare.jpg",
+        "public/TheRockSideEye.jpg", "public/WaitBud.jpg", "public/WhatIsThis.jpg"
+    ];
+    const img = document.createElement('img');
+    img.src = chrome.runtime.getURL(imgFiles[imgNum]);
+    img.style.cssText = "width: 50vw; height: 50vh; object-fit: contain; display: block; margin: 0 auto;";
+
+    // Warning
+    const warning = document.createElement('div');
+    warning.style.cssText = `color: #ff0000; font-size: 16px; font-weight: 700;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);`;
+    warning.textContent = 'Are you sure you wanna send that bro?';
+
+    // Gemini roast
+    const caption = document.createElement('div');
+    caption.style.cssText = `color: #ffffff; font: 600 17px/1.35 system-ui, -apple-system, sans-serif;
+        text-shadow: 0 2px 8px rgba(0,0,0,0.8);`;
+    caption.textContent = roastText;
+
+    const video = document.createElement('video');
+    video.src = chrome.runtime.getURL("media/animeGirl.mp4");
+    video.style.cssText = "width: 50vw; max-height: 40vh; object-fit: contain; display: none; margin: 0 auto; border-radius: 8px;";
+    video.autoplay = true;
+    video.loop = false;
+
+    video.style.cssText = `
+        width: 28vw; max-height: 50vh;
+        object-fit: contain; display: none;
+        border-radius: 8px;
+    `;
+
+    // Buttons
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = `display: flex; gap: 12px; margin-top: 8px; pointer-events: auto;`;
+
+    const btnProceed = document.createElement('button');
+    btnProceed.textContent = '😈 Send it anyway';
+    btnProceed.style.cssText = `
+        padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+        background: #e53e3e; color: #fff; font-weight: 700; font-size: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    `;
+
+    const btnCancel = document.createElement('button');
+    btnCancel.textContent = '✅ Let me fix it';
+    btnCancel.style.cssText = `
+        padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+        background: #38a169; color: #fff; font-weight: 700; font-size: 15px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    `;
+
+    const cleanup = () => {
+        backdrop.remove();
+        center.remove();
+    };
+
+    btnProceed.addEventListener('click', () => {
+        cleanup();
+        releaseMessage(element);
+    });
+
+    btnCancel.addEventListener('click', () => {
+        cleanup();
+        console.log("Cringe averted. Aura preserved.");
+    });
+
+    btnRow.appendChild(btnProceed);
+    btnRow.appendChild(btnCancel);
+
+    leftCol.appendChild(img);
+    leftCol.appendChild(warning);
+    leftCol.appendChild(caption);
+    leftCol.appendChild(btnRow);
+    rightCol.appendChild(video);
+
+    center.appendChild(leftCol);
+    center.appendChild(rightCol);
     document.body.appendChild(backdrop);
     document.body.appendChild(center);
 
-    // 6. Play the Audio
-    const audioNum = Math.floor(Math.random() * 3);
-    audioURL = "";
-    switch(audioNum) {
-        case 0: audioURL = "public/Fah.mp3"; break;
-        case 1: audioURL = "public/Lie.mp3"; break;
-        case 2: audioURL = "public/VineBoom.mp3"; break;
-    }
+    // Audio
+    const audioFiles = ["public/Fah.mp3", "public/Lie.mp3", "public/VineBoom.mp3"];
+    const audioURL = audioFiles[Math.floor(Math.random() * 3)];
     const audio = new Audio(chrome.runtime.getURL(audioURL));
     audio.play();
 
-    // 7. Cleanup after 4 seconds (Removed automatically)
-    setTimeout(() => {
-        // Use animation/fadeout here if you are feeling fancy
-        overlay.remove();
-    }, 2000);
+    audio.addEventListener('ended', async () => {
+        // Swap image for video
+        img.style.display = 'none';
+        video.style.display = 'block';
+        video.play();
+
+        // Generate and play AI voice over the video
+        try {
+            await generateAnimeSpeech(roastText);
+        } catch (err) {
+            console.error("ElevenLabs failed:", err);
+        }
+    });
 }
 
 // allow sending

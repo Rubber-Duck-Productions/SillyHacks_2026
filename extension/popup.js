@@ -1,5 +1,5 @@
 /** Avatar clip under extension/ — must match a real file and manifest web_accessible_resources */
-const AVATAR_VIDEO_FILE = 'media/268766_medium.mp4';
+const AVATAR_VIDEO_FILE = 'media/animeGirl.mp4';
 
 // --- 1. Global Configuration (secrets from .env → npm run extension:env → aura-config.js) ---
 const CONFIG = {
