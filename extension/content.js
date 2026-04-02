@@ -135,18 +135,27 @@ function triggerPopup(element) {
         text-align: center;
     `;
 
-    const rockUrl = chrome.runtime.getURL('public/TheRockSideEye.jpg');
-    const img = document.createElement('img');
-    img.src = rockUrl;
-    img.alt = 'AURA';
-    img.style.cssText = `
-        display: block;
-        width: min(72vw, 280px);
-        height: auto;
-        border-radius: 14px;
-        border: 4px solid #ff4757;
-        box-shadow: 0 12px 40px rgba(0,0,0,0.55);
-        pointer-events: none;
+    // 4. Populate Content (Image + Text)
+    const imgnum = Math.floor(Math.random() * 9);
+    let imgURL = "";
+    switch(imgnum) {
+        case 0: imgURL = "public/DogGiveUp.jpg"; break;
+        case 1: imgURL = "public/DogShush.jpg"; break;
+        case 2: imgURL = "public/OMG.jpg"; break;
+        case 3: imgURL = "public/Praying.jpg"; break;
+        case 4: imgURL = "public/ShaqPause.jpg"; break;
+        case 5: imgURL = "public/SusStare.jpg"; break;
+        case 6: imgURL = "public/TheRockSideEye.jpg"; break;
+        case 7: imgURL = "public/WaitBud.jpg"; break;
+        case 8: imgURL = "public/WhatIsThis.jpg"; break;
+    }
+    popupContent.innerHTML = `
+        <img src="${chrome.runtime.getURL(imgURL)}" 
+         style="width: 50vw; height: 50vh; object-fit: contain; display: block; margin: 0 auto;" 
+        />
+        <div style="color: #ff0000; font-size: 16px;">
+            Are you sure you wanna send that bro?<br>
+        </div>
     `;
 
     const caption = document.createElement('div');
@@ -163,15 +172,22 @@ function triggerPopup(element) {
     document.body.appendChild(backdrop);
     document.body.appendChild(center);
 
-    const audio = new Audio(chrome.runtime.getURL('public/VineBoom.mp3'));
-    audio.play().catch(() => {});
+    // 6. Play the Audio
+    const audioNum = Math.floor(Math.random() * 3);
+    audioURL = "";
+    switch(audioNum) {
+        case 0: audioURL = "public/Fah.mp3"; break;
+        case 1: audioURL = "public/Lie.mp3"; break;
+        case 2: audioURL = "public/VineBoom.mp3"; break;
+    }
+    const audio = new Audio(chrome.runtime.getURL(audioURL));
+    audio.play();
 
-    const tearDown = () => {
-        backdrop.remove();
-        center.remove();
-    };
-    backdrop.addEventListener('click', tearDown);
-    setTimeout(tearDown, 4000);
+    // 7. Cleanup after 4 seconds (Removed automatically)
+    setTimeout(() => {
+        // Use animation/fadeout here if you are feeling fancy
+        overlay.remove();
+    }, 2000);
 }
 
 // allow sending

@@ -1,22 +1,3 @@
-<<<<<<< HEAD
-importScripts('aura-config.js');
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'CHECK_AURA') {
-    const mockScore = Math.random();
-    console.log('Brain received:', request.content);
-    sendResponse({ score: mockScore });
-    return false;
-  }
-
-  if (request.action === 'checkCringe') {
-    sendResponse({ cringe: Math.random() > 0.5 });
-    return false;
-  }
-
-  return false;
-});
-=======
 import { HF_TOKEN } from './config.js';
 // background.js
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -75,9 +56,8 @@ const CRINGE_LIST = [
     "bombaclat", "sussy baka", "mog",
     "bffr", "uwu", "xd", "owo", 
     "sybau", "tmo", "ts", "diddy", 
-    "diddyblud", "tuff", "fine shyt", "shyt", "tweaking", 
+    "diddyblud", "tuff", "tweaking", 
     "dih", "puh", "fuh", "bih", "chungus",
     "mald", "mog", "tung", "tralalero",
     "patapim", "brainrot", "unc"
 ];
->>>>>>> 6f8ee1f3c89db87cb352130a42f1bf8f23939646

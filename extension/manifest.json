@@ -23,13 +23,9 @@
     "default_popup": "popup.html"
   },
   "web_accessible_resources": [
-    {
-      "resources": [
-        "public/TheRockSideEye.jpg",
-        "public/VineBoom.mp3",
-        "media/268766_medium.mp4"
-      ],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  {
+    "resources": ["public/*"],
+    "matches": ["<all_urls>"]
+  }
+]
 }
