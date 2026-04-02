@@ -13,7 +13,7 @@ const CONFIG = {
 async function getGeminiResponse(userPrompt) {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -72,13 +72,19 @@ async function generateAnimeSpeech(text) {
 
 // 3. Orchestrator: Combine both
 async function talkToGemini(userInput) {
-  console.log("Thinking...");
-  const aiText = await getGeminiResponse(userInput);
-  
-  console.log("Gemini said:", aiText);
-  console.log("Generating voice...");
-  
-  await generateAnimeSpeech(aiText);
+    console.log("Thinking...");
+    
+    const roastPrompt = `You are a savage anime girl who roasts people for being cringe online. 
+The user was about to send this message: "${userInput}".
+Roast them in one short brutal sentence, spoken directly to them. 
+Stay in character as an anime girl. No quotes, no emojis, max 15 words.`;
+    
+    const aiText = await getGeminiResponse(roastPrompt);
+    
+    console.log("Gemini said:", aiText);
+    console.log("Generating voice...");
+    
+    await generateAnimeSpeech(aiText);
 }
 
 // Call talkToGemini(...) from the console when testing; the extension popup uses popup.js.

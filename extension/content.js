@@ -166,11 +166,13 @@ function triggerPopup(element, roastText = "bro really said that") {
         text-shadow: 0 2px 8px rgba(0,0,0,0.8);`;
     warning.textContent = 'Are you sure you wanna send that bro?';
 
+    const spokenRoast = ROASTS[Math.floor(Math.random() * ROASTS.length)];
+
     // Gemini roast
     const caption = document.createElement('div');
     caption.style.cssText = `color: #ffffff; font: 600 17px/1.35 system-ui, -apple-system, sans-serif;
         text-shadow: 0 2px 8px rgba(0,0,0,0.8);`;
-    caption.textContent = roastText;
+    caption.textContent = spokenRoast;
 
     const video = document.createElement('video');
     video.src = chrome.runtime.getURL("media/animeGirl.mp4");
@@ -251,7 +253,7 @@ function triggerPopup(element, roastText = "bro really said that") {
 
         // Generate and play AI voice over the video
         try {
-            await generateAnimeSpeech(roastText);
+            await generateAnimeSpeech(spokenRoast);
         } catch (err) {
             console.error("ElevenLabs failed:", err);
         }
@@ -279,3 +281,21 @@ function releaseMessage(element) {
     isBypassing = false;
     console.log("Message released.");
 }
+
+const ROASTS = [
+    "Did you really just type that? Your aura is cooked.",
+    "Bro spent three seconds writing that and lost fifty aura points.",
+    "Your ancestors are crying. Delete that immediately.",
+    "That message has the energy of a participation trophy.",
+    "Even your autocorrect was embarrassed to suggest that.",
+    "You just set a new personal record for being cringe.",
+    "I have seen better takes from a broken fortune cookie.",
+    "Your rizz is in the negatives and falling fast.",
+    "That sentence just made the whole internet dumber.",
+    "Whoever taught you to type owes everyone an apology.",
+    "Your message has been flagged as a crime against vibes.",
+    "Three words: touch some grass.",
+    "That was so cringe my screen tried to turn itself off.",
+    "You typed that with your whole chest and that is the problem.",
+    "The audacity. The nerve. The absolute lack of self-awareness.",
+];
