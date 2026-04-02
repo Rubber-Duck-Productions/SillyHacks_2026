@@ -239,6 +239,10 @@ function triggerPopup(element, roastText = "bro really said that") {
     const audio = new Audio(chrome.runtime.getURL(audioURL));
     audio.play();
 
+    setTimeout(() => {
+        console.log("Boom! 1 second passed.");
+    }, 2000);
+
     audio.addEventListener('ended', async () => {
         // Swap image for video
         img.style.display = 'none';
