@@ -25,7 +25,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // ROAST SECTION
     if (request.type === 'GET_ROAST') {
         fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${encodeURIComponent(CONFIG.GEMINI_API_KEY)}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
