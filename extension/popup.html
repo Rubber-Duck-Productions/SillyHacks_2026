@@ -1,26 +1,36 @@
 <!DOCTYPE html>
+<html lang="en">
 <head>
-    <title>AURA_MONITOR</title>
-    <link rel="stylesheet" type="text/css" href="styles.css">
-</head>
-<html>
-<head>
-
+  <meta charset="utf-8" />
+  <title>AURA_MONITOR</title>
+  <link rel="stylesheet" type="text/css" href="styles.css" />
 </head>
 <body>
-    <div class="aura-circle"></div>
-    <h1>AURA_MONITOR v1.0</h1>
-    <div id="chat-window"></div>
-    <div id="controls">
-        <textarea id="prompt" placeholder="Type or use Speak, then Send…" rows="2"></textarea>
-        <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap;">
-            <button type="button" id="speak-btn" title="Speak to Gemini">Speak</button>
-            <button type="button" id="send-btn">Send</button>
-        </div>
+  <div id="avatar-wrap" class="avatar-wrap" aria-label="AURA avatar">
+    <video
+      id="aura-avatar-video"
+      class="aura-avatar-video"
+      playsinline
+      muted
+      loop
+      preload="auto"
+    ></video>
+    <p id="avatar-hint" class="avatar-hint">
+      Put your clip at <code>extension/media/268766_medium.mp4</code> or change <code>AVATAR_VIDEO_FILE</code> in <code>popup.js</code>.
+    </p>
+  </div>
+  <h1>AURA_MONITOR v1.0</h1>
+  <div id="chat-window"></div>
+  <div id="controls">
+    <textarea id="prompt" placeholder="Type or use Speak, then Send…" rows="2"></textarea>
+    <div style="display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap">
+      <button type="button" id="speak-btn" title="Speak to Gemini">Speak</button>
+      <button type="button" id="send-btn">Send</button>
     </div>
-    <p class="status" id="status-line">Checking ElevenLabs…</p>
-    <p style="margin-top: 8px; font-style: italic;">"We see what you type. For your own good."</p>
-    <script src="aura-config.js"></script>
-    <script src="popup.js"></script>
+  </div>
+  <p class="status" id="status-line">Checking ElevenLabs…</p>
+  <p style="margin-top: 8px; font-style: italic">"We see what you type. For your own good."</p>
+  <script src="aura-config.js"></script>
+  <script src="popup.js"></script>
 </body>
 </html>
